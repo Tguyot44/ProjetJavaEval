@@ -1,3 +1,5 @@
+package Test;
+
 import fr.epsi.book.dal.ContactDAO;
 import fr.epsi.book.domain.Contact;
 

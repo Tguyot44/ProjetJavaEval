@@ -4,15 +4,13 @@ import fr.epsi.book.domain.Book;
 import fr.epsi.book.domain.Contact;
 
 import java.sql.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BookDAO implements IDAO<Book, Long> {
 
     private static final String INSERT_QUERY = "INSERT INTO `book`(`id`, `code`, `contact`) VALUES ";
     private static final String FIND_BY_ID_QUERY = "SELECT `id`, `code`, `contact` FROM `book` WHERE `id` = ?";
-    private static final String FIND_ALL_QUERY = "";
+    private static final String FIND_ALL_QUERY = "SELECT id,code,GROUP_CONCAT(contact) FROM `book` GROUP BY id ";
     private static final String UPDATE_QUERY = "";
     private static final String REMOVE_QUERY = "";
 
@@ -42,9 +40,10 @@ public class BookDAO implements IDAO<Book, Long> {
 
     @Override
     public Book findById(Long aLong) {
-        HashMap<String,Contact> mp = new HashMap<>();
-        String id ="";
-        String  code="";
+        List<Long> l = new ArrayList<>();
+        String id = "";
+        String code = "";
+
         try (Connection connection = PersistenceManager.getConnection()) {
 
             PreparedStatement st = connection.prepareStatement(FIND_BY_ID_QUERY, Statement.RETURN_GENERATED_KEYS);
@@ -52,21 +51,12 @@ public class BookDAO implements IDAO<Book, Long> {
             st.executeQuery();
             ResultSet rs = st.executeQuery();
 
-            while(rs.next()){
+            while (rs.next()) {
                 id = rs.getString(1);
                 code = rs.getString(2);
-                Long l = rs.getLong(3);
-                ContactDAO cd = new ContactDAO();
-                Contact c = cd.findById(l);
-                mp.put(c.getName(),c);
+                l.add(rs.getLong(3));
             }
-            rs.previous();
-            if (id != "" && code != ""){
-            return new Book(id,code,mp);
-            }else{
-                return null;
-            }
-
+            return bookMaker(id, code, l);
 
         } catch (SQLException e) {
             System.err.println(e + " findId err");
@@ -74,11 +64,37 @@ public class BookDAO implements IDAO<Book, Long> {
         }
     }
 
-
     @Override
     public List<Book> findAll() {
-        //TODO
-        return null;
+        ContactDAO cdao = new ContactDAO();
+        List<Book> lb = new ArrayList<>();
+        List<Book> flb = new ArrayList<>();
+        List<List<String>> arrl = new ArrayList<>();
+
+        try (Connection connection = PersistenceManager.getConnection()) {
+
+            PreparedStatement st = connection.prepareStatement(FIND_ALL_QUERY, Statement.RETURN_GENERATED_KEYS);
+            st.executeQuery();
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                Book b = new Book();
+                b.setId(rs.getString(1));
+                b.setCode(rs.getString(2));
+                lb.add(b);
+                arrl.add(Arrays.asList(rs.getString(3).split("\\s*,\\s*")));
+            }
+            for (int i = 0 ; i<arrl.size(); i++) {
+                List<Long> idl = new ArrayList<>();
+                for (String s : arrl.get(i)) {
+                    idl.add(Long.parseLong(s));
+                }
+                flb.add(bookMaker(lb.get(i).getId(),lb.get(i).getCode(),idl));
+            }
+            return flb;
+        } catch (SQLException e) {
+            System.err.println(e);
+            return null;
+        }
     }
 
     @Override
@@ -92,7 +108,18 @@ public class BookDAO implements IDAO<Book, Long> {
         //TODO
     }
 
-    private HashMap<String, Contact> to_map() {
-        return null;
+    private Book bookMaker(String id, String code, List<Long> l) {
+        ContactDAO cd = new ContactDAO();
+        HashMap<String, Contact> mp = new HashMap<>();
+        for (Long cid : l) {
+            Contact c = cd.findById(cid);
+            mp.put(c.getName(), c);
+        }
+
+        if (id != "" && code != "") {
+            return new Book(id, code, mp);
+        } else {
+            return null;
+        }
     }
 }
