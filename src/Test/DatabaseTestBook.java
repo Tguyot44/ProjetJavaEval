@@ -13,7 +13,7 @@ public class DatabaseTestBook {
         BookDAO bd = new BookDAO();
         ContactDAO cd = new ContactDAO();
 
-        /*Contact c1 = new Contact(
+        Contact c1 = new Contact(
                 "2",
                 "test2",
                 "mail",
@@ -62,10 +62,14 @@ public class DatabaseTestBook {
         System.out.println(bd.findById(1l).toString());
         System.out.println(bd.findById(2l).toString());
 
+        System.out.println(bd.findAll());
+
         cd.remove(c1);
         cd.remove(c2);
-        cd.remove(c3);*/
-        System.out.println(bd.findAll());
+        cd.remove(c3);
+
+        bd.remove(b1);
+        bd.remove(b2);
     }
 
 }

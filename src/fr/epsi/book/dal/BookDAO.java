@@ -12,7 +12,7 @@ public class BookDAO implements IDAO<Book, Long> {
     private static final String FIND_BY_ID_QUERY = "SELECT `id`, `code`, `contact` FROM `book` WHERE `id` = ?";
     private static final String FIND_ALL_QUERY = "SELECT id,code,GROUP_CONCAT(contact) FROM `book` GROUP BY id ";
     private static final String UPDATE_QUERY = "";
-    private static final String REMOVE_QUERY = "";
+    private static final String REMOVE_QUERY = "DELETE FROM `book` WHERE `id` = ?";
 
     @Override
     public void create(Book b) {
@@ -105,7 +105,13 @@ public class BookDAO implements IDAO<Book, Long> {
 
     @Override
     public void remove(Book o) {
-        //TODO
+        try (Connection connection = PersistenceManager.getConnection()) {
+            PreparedStatement st = connection.prepareStatement(REMOVE_QUERY, Statement.RETURN_GENERATED_KEYS);
+            st.setString(1, o.getId());
+            st.executeUpdate();
+        }catch (SQLException e){
+            System.err.println(e);
+        }
     }
 
     private Book bookMaker(String id, String code, List<Long> l) {
